@@ -28,6 +28,9 @@ export class Part4Scene extends Phaser.Scene {
     remoteRef: Phaser.GameObjects.Rectangle;
 
     cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys;
+    actionKey: Phaser.Input.Keyboard.Key;
+
+    box: Phaser.Types.Physics.Arcade.ImageWithDynamicBody;
 
     inputPayload = {
         left: false,
@@ -48,11 +51,18 @@ export class Part4Scene extends Phaser.Scene {
 
     preload() {
         this.load.image('ship_0001', 'assets/ship_0001.png');
+        this.load.image('box', 'assets/box.png');
     }
 
     async create() {
         this.cursorKeys = this.input.keyboard.createCursorKeys();
+        this.actionKey = this.input.keyboard.addKey('P');
         this.debugFPS = this.add.text(4, 4, "", { color: "#ff0000", });
+
+        this.box = this.physics.add.image(1200, 400, 'box').setImmovable(true);
+        this.box.displayWidth = 200;
+        this.box.displayHeight = 200;
+
 
         // connect with the room
         await this.connect();
@@ -123,7 +133,7 @@ export class Part4Scene extends Phaser.Scene {
 
         } catch (e) {
             // couldn't connect
-            connectionStatusText.text =  "Could not connect with the server.";
+            connectionStatusText.text = "Could not connect with the server.";
         }
 
     }
@@ -131,6 +141,12 @@ export class Part4Scene extends Phaser.Scene {
     update(time: number, delta: number): void {
         // skip loop if not connected yet.
         if (!this.currentPlayer) { return; }
+
+        this.physics.world.overlap(this.currentPlayer, this.box, (player, box) => {
+            if (this.actionKey.isDown) {
+                alert("Player interacted with the box!");
+            }
+        });
 
         this.elapsedTime += delta;
         while (this.elapsedTime >= this.fixedTimeStep) {
