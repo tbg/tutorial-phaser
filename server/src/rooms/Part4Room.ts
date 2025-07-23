@@ -51,7 +51,7 @@ export class Part4Room extends Room<MyRoomState> {
   }
 
   fixedTick(timeStep: number) {
-    const velocity = 2;
+    const velocity = 10;
 
     this.state.players.forEach(player => {
       let input: InputData;

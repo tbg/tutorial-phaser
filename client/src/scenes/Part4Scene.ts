@@ -197,7 +197,7 @@ export class Part4Scene extends Phaser.Scene {
         // const ticksBehind = this.currentTick - currentPlayerRemote.tick;
         // console.log({ ticksBehind });
 
-        const velocity = 2;
+        const velocity = 10;
         this.inputPayload.left = this.cursorKeys.left.isDown;
         this.inputPayload.right = this.cursorKeys.right.isDown;
         this.inputPayload.up = this.cursorKeys.up.isDown;
