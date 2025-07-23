@@ -31,6 +31,27 @@ export class Part4Scene extends Phaser.Scene {
     actionKey: Phaser.Input.Keyboard.Key;
 
     boxes: Phaser.Physics.Arcade.Group;
+    leftBoxes: Phaser.Physics.Arcade.Image[] = [];
+    rightBoxes: Phaser.Physics.Arcade.Image[] = [];
+    circles: Phaser.Physics.Arcade.Group;
+    
+    // Game mechanics
+    circleTimer: Phaser.Time.TimerEvent;
+    score: number = 0;
+    scoreText: Phaser.GameObjects.Text;
+    carriedCircle: Phaser.GameObjects.Arc = null;
+    goalBox: Phaser.GameObjects.Rectangle = null;
+    goalBoxText: Phaser.GameObjects.Text = null;
+    gameOver: boolean = false;
+    gameOverText: Phaser.GameObjects.Text = null;
+    alphabetRanges = [
+        { range: 'A-E', letters: 'ABCDE' },
+        { range: 'F-I', letters: 'FGHI' },
+        { range: 'J-M', letters: 'JKLM' },
+        { range: 'N-Q', letters: 'NOPQ' },
+        { range: 'R-U', letters: 'RSTU' },
+        { range: 'V-Z', letters: 'VWXYZ' }
+    ];
 
     inputPayload = {
         left: false,
@@ -59,7 +80,25 @@ export class Part4Scene extends Phaser.Scene {
         this.actionKey = this.input.keyboard.addKey('P');
         this.debugFPS = this.add.text(4, 4, "", { color: "#ff0000", });
 
+        // Initialize game systems
         this.boxes = this.physics.add.group();
+        this.circles = this.physics.add.group();
+        
+        // Create score display
+        this.scoreText = this.add.text(16, 50, 'Score: 0', {
+            fontSize: '24px',
+            color: '#000000',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold'
+        });
+        
+        // Add instructions
+        this.add.text(16, 80, 'Instructions: Catch red circles before they reach boxes (P)! Sort to correct alphabet box, then return green circles to goal box for points!', {
+            fontSize: '14px',
+            color: '#333333',
+            fontFamily: 'Arial, sans-serif',
+            wordWrap: { width: 600 }
+        });
 
         const canvasWidth = Number(this.sys.game.config.width);
         const canvasHeight = Number(this.sys.game.config.height);
@@ -70,18 +109,24 @@ export class Part4Scene extends Phaser.Scene {
         // Define alphabet ranges for each box
         const alphabetRanges = ['A-E', 'F-I', 'J-M', 'N-Q', 'R-U', 'V-Z'];
 
+        // Create the 6 right boxes with alphabet ranges
         for (let i = 0; i < 6; i++) {
             const boxX = canvasWidth - boxWidth / 2;
             const boxY = 100 + (i * (boxHeight + padding));
             
             const box = this.boxes.create(boxX, boxY, 'box');
             box.setData('id', i);
+            box.setData('type', 'right');
+            box.setData('alphabetIndex', i);
             box.body.immovable = true;
             box.displayWidth = boxWidth;
             box.displayHeight = boxHeight;
             
+            // Store in rightBoxes array
+            this.rightBoxes.push(box);
+            
             // Add alphabet range text to each box
-            const rangeText = this.add.text(boxX, boxY, alphabetRanges[i], {
+            const rangeText = this.add.text(boxX, boxY, this.alphabetRanges[i].range, {
                 fontSize: '24px',
                 color: '#ffffff',
                 fontFamily: 'Arial, sans-serif',
@@ -103,17 +148,25 @@ export class Part4Scene extends Phaser.Scene {
         const newBoxHeight = canvasHeight * 0.4;
         const verticalSpacing = (canvasHeight - (2 * newBoxHeight)) / 3;
 
+        // Create the 2 left boxes
         const box1 = this.boxes.create(boxWidth / 2, verticalSpacing + newBoxHeight / 2, 'box');
         box1.setData('id', 6);
+        box1.setData('type', 'left');
         box1.body.immovable = true;
         box1.displayWidth = boxWidth;
         box1.displayHeight = newBoxHeight;
+        this.leftBoxes.push(box1);
 
         const box2 = this.boxes.create(boxWidth / 2, (verticalSpacing * 2) + newBoxHeight + (newBoxHeight / 2), 'box');
         box2.setData('id', 7);
+        box2.setData('type', 'left');
         box2.body.immovable = true;
         box2.displayWidth = boxWidth;
         box2.displayHeight = newBoxHeight;
+        this.leftBoxes.push(box2);
+        
+        // Start the circle generation timer
+        this.startCircleTimer();
 
         // connect with the room
         await this.connect();
@@ -190,21 +243,58 @@ export class Part4Scene extends Phaser.Scene {
     }
 
     update(time: number, delta: number): void {
-        // skip loop if not connected yet.
-        if (!this.currentPlayer) { return; }
+        // skip loop if not connected yet or game over
+        if (!this.currentPlayer || this.gameOver) { return; }
 
+        // Handle box interactions
         this.physics.world.overlap(this.currentPlayer, this.boxes, (player, box) => {
-            const boxId = (box as Phaser.Physics.Arcade.Image).getData('id');
-            if (this.actionKey.isDown) {
-                let message;
-                if (boxId > 5) {
-                    message = `Player interacted with new box #${boxId}`;
-                } else {
-                    message = `Player interacted with box #${boxId}`;
+            if (this.actionKey.isDown && !this.gameOver) {
+                const boxData = box as Phaser.Physics.Arcade.Image;
+                
+                // If carrying a circle, try to drop it
+                if (this.carriedCircle) {
+                    if (boxData.getData('type') === 'right') {
+                        this.dropCircle(boxData);
+                    }
                 }
-                alert(message);
             }
         });
+
+        // Handle goal box interaction
+        if (this.goalBox && this.carriedCircle && this.actionKey.isDown && !this.gameOver) {
+            const distance = Phaser.Math.Distance.Between(
+                this.currentPlayer.x, this.currentPlayer.y,
+                this.goalBox.x, this.goalBox.y
+            );
+            
+            if (distance < 80 && this.carriedCircle.getData('state') === 'correct_box') {
+                // Successfully returned green circle to goal box
+                this.returnCircleToGoalBox();
+            }
+        }
+
+        // Handle circle pickup (intercept traveling circles or pick up green circles)
+        this.physics.world.overlap(this.currentPlayer, this.circles, (player, circle) => {
+            const circleData = circle as Phaser.GameObjects.Arc;
+            const circleState = circleData.getData('state');
+            if (this.actionKey.isDown && 
+                (circleState === 'traveling' || circleState === 'correct_box') && 
+                !this.carriedCircle && 
+                !this.gameOver) {
+                this.pickupCircle(circleData);
+            }
+        });
+
+        // Update carried circle position to follow player
+        if (this.carriedCircle && this.carriedCircle.getData('isCarried')) {
+            this.carriedCircle.x = this.currentPlayer.x;
+            this.carriedCircle.y = this.currentPlayer.y - 30; // Slightly above player
+            const letterText = this.carriedCircle.getData('letterText');
+            if (letterText) {
+                letterText.x = this.carriedCircle.x;
+                letterText.y = this.carriedCircle.y;
+            }
+        }
 
         this.elapsedTime += delta;
         while (this.elapsedTime >= this.fixedTimeStep) {
@@ -261,6 +351,279 @@ export class Part4Scene extends Phaser.Scene {
             entity.y = Phaser.Math.Linear(entity.y, serverY, 0.2);
         }
 
+    }
+
+    startCircleTimer() {
+        // Create a timer that triggers every 3 seconds
+        this.circleTimer = this.time.addEvent({
+            delay: 3000,
+            callback: this.generateCircle,
+            callbackScope: this,
+            loop: true
+        });
+    }
+
+    generateCircle() {
+        // Don't generate circles if game is over
+        if (this.gameOver) return;
+        
+        // Pick a random left box
+        const randomLeftBox = Phaser.Utils.Array.GetRandom(this.leftBoxes);
+        
+        // Pick a random right box as destination
+        const randomRightBox = Phaser.Utils.Array.GetRandom(this.rightBoxes);
+        
+        // Generate a random alphabet character
+        const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const randomLetter = Phaser.Utils.Array.GetRandom(allLetters.split(''));
+        
+        // Create a red circle
+        const circle = this.add.circle(randomLeftBox.x, randomLeftBox.y, 20, 0xff0000);
+        circle.setStrokeStyle(2, 0x000000);
+        
+        // Add physics to the circle
+        this.physics.add.existing(circle);
+        this.circles.add(circle);
+        
+        // Store circle data
+        circle.setData('letter', randomLetter);
+        circle.setData('originalDestination', randomRightBox);
+        circle.setData('state', 'traveling'); // traveling, picked_up, correct_box, returning
+        circle.setData('isCarried', false);
+        
+        // Add the letter text on the circle
+        const letterText = this.add.text(circle.x, circle.y, randomLetter, {
+            fontSize: '16px',
+            color: '#ffffff',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold'
+        });
+        letterText.setOrigin(0.5, 0.5);
+        circle.setData('letterText', letterText);
+        
+        // Animate circle to destination (slower speed for player to catch)
+        this.tweens.add({
+            targets: [circle, letterText],
+            x: randomRightBox.x,
+            y: randomRightBox.y,
+            duration: 6000, // Slower: 6 seconds instead of 2
+            ease: 'Linear',
+            onComplete: () => {
+                // Game over if circle reaches destination without being caught
+                if (!circle.getData('isCarried')) {
+                    this.triggerGameOver();
+                } else {
+                    circle.setData('state', 'waiting_pickup');
+                }
+            }
+        });
+    }
+
+    getCorrectBoxForLetter(letter: string): number {
+        for (let i = 0; i < this.alphabetRanges.length; i++) {
+            if (this.alphabetRanges[i].letters.includes(letter)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    pickupCircle(circle: Phaser.GameObjects.Arc) {
+        if (this.carriedCircle || circle.getData('isCarried') || this.gameOver) return;
+        
+        this.carriedCircle = circle as any;
+        circle.setData('isCarried', true);
+        circle.setData('state', 'picked_up');
+        
+        // Change appearance to show it's being carried
+        circle.setAlpha(0.7);
+        
+        // Create goal box when player picks up circle
+        this.createGoalBox();
+    }
+
+    dropCircle(targetBox: Phaser.Physics.Arcade.Image) {
+        if (!this.carriedCircle || this.gameOver) return;
+        
+        const circle = this.carriedCircle;
+        const letter = circle.getData('letter');
+        const correctBoxIndex = this.getCorrectBoxForLetter(letter);
+        const targetBoxIndex = targetBox.getData('alphabetIndex');
+        
+        if (targetBox.getData('type') === 'right') {
+            if (targetBoxIndex === correctBoxIndex) {
+                // Store current position before clearing carried circle
+                const currentX = circle.x;
+                const currentY = circle.y;
+                
+                // Clear carried state FIRST
+                this.carriedCircle = null;
+                circle.setData('isCarried', false);
+                circle.setData('state', 'correct_box');
+                
+                // Change color to green and keep in exact same position
+                circle.setFillStyle(0x00ff00);
+                circle.setAlpha(1);
+                
+                // Ensure position stays exactly where it was
+                circle.x = currentX;
+                circle.y = currentY;
+                
+                // Update letter text position to match
+                const letterText = circle.getData('letterText');
+                if (letterText) {
+                    letterText.x = currentX;
+                    letterText.y = currentY;
+                }
+            } else {
+                // Wrong box, return to player
+                this.returnCircleToPlayer();
+            }
+        }
+    }
+
+
+
+    returnCircleToPlayer() {
+        if (!this.carriedCircle) return;
+        
+        const circle = this.carriedCircle;
+        circle.setAlpha(1);
+        this.carriedCircle = null;
+        circle.setData('isCarried', false);
+        circle.setData('state', 'waiting_pickup');
+    }
+
+    triggerGameOver() {
+        if (this.gameOver) return;
+        
+        this.gameOver = true;
+        
+        // Stop circle generation
+        if (this.circleTimer) {
+            this.circleTimer.destroy();
+            this.circleTimer = null;
+        }
+        
+        // Clear any carried circle
+        this.carriedCircle = null;
+        
+        // Remove goal box if it exists
+        if (this.goalBox) {
+            this.goalBox.destroy();
+            this.goalBox = null;
+        }
+        if (this.goalBoxText) {
+            this.goalBoxText.destroy();
+            this.goalBoxText = null;
+        }
+        
+        // Display game over message
+        const centerX = Number(this.sys.game.config.width) / 2;
+        const centerY = Number(this.sys.game.config.height) / 2;
+        
+        const gameOverBg = this.add.rectangle(centerX, centerY, 600, 200, 0x000000, 0.8);
+        
+        this.gameOverText = this.add.text(centerX, centerY - 20, 'GAME OVER!', {
+            fontSize: '48px',
+            color: '#ff0000',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold'
+        });
+        this.gameOverText.setOrigin(0.5, 0.5);
+        
+        const restartText = this.add.text(centerX, centerY + 30, 'A circle reached a box! Press R to restart', {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontFamily: 'Arial, sans-serif'
+        });
+        restartText.setOrigin(0.5, 0.5);
+        
+        // Add restart functionality - use once() instead of on() to avoid multiple listeners
+        this.input.keyboard.once('keydown-R', () => {
+            this.restartGame();
+        });
+    }
+
+    restartGame() {
+        // Clean up everything before restarting
+        this.gameOver = false;
+        this.score = 0;
+        this.carriedCircle = null;
+        
+        // Remove all circles and their text
+        this.circles.children.entries.forEach((circle: any) => {
+            const letterText = circle.getData('letterText');
+            if (letterText) {
+                letterText.destroy();
+            }
+            circle.destroy();
+        });
+        this.circles.clear();
+        
+        // Clean up timers
+        if (this.circleTimer) {
+            this.circleTimer.destroy();
+            this.circleTimer = null;
+        }
+        
+        // Remove goal box
+        if (this.goalBox) {
+            this.goalBox.destroy();
+            this.goalBox = null;
+        }
+        if (this.goalBoxText) {
+            this.goalBoxText.destroy();
+            this.goalBoxText = null;
+        }
+        
+        // Restart the scene
+        this.scene.restart();
+    }
+
+    createGoalBox() {
+        if (this.goalBox || this.gameOver) return;
+        
+        // Create goal box in center of screen
+        const centerX = Number(this.sys.game.config.width) / 2;
+        const centerY = Number(this.sys.game.config.height) / 2;
+        
+        this.goalBox = this.add.rectangle(centerX, centerY, 120, 80, 0xffff00, 0.8);
+        this.goalBox.setStrokeStyle(3, 0xff8800);
+        
+        this.goalBoxText = this.add.text(centerX, centerY, 'GOAL\nBOX', {
+            fontSize: '16px',
+            color: '#000000',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            align: 'center'
+        });
+        this.goalBoxText.setOrigin(0.5, 0.5);
+    }
+
+    returnCircleToGoalBox() {
+        if (!this.carriedCircle || !this.goalBox || this.gameOver) return;
+        
+        const circle = this.carriedCircle;
+        const letterText = circle.getData('letterText');
+        
+        // Award point and clean up
+        this.score += 1;
+        this.scoreText.setText(`Score: ${this.score}`);
+        
+        // Remove circle and text
+        letterText.destroy();
+        circle.destroy();
+        this.circles.remove(circle);
+        
+        // Remove goal box
+        this.goalBox.destroy();
+        this.goalBoxText.destroy();
+        this.goalBox = null;
+        this.goalBoxText = null;
+        
+        // Clear carried circle
+        this.carriedCircle = null;
     }
 
 }
