@@ -15,8 +15,8 @@ const config: Phaser.Types.Core.GameConfig = {
         forceSetTimeOut: true,
         smoothStep: false,
     },
-    width: 800,
-    height: 600,
+    width: 1440,
+    height: 900,
     // height: 200,
     backgroundColor: '#b6d53c',
     parent: 'phaser-example',
@@ -59,7 +59,7 @@ fpsInput.oninput = function(event: InputEvent) {
 /**
  * Create latency simulation selector
  */
-let fetchLatencySimulationInterval: number;
+let fetchLatencySimulationInterval: NodeJS.Timeout;
 
 // latency simulation label
 const latencyInput = document.querySelector<HTMLInputElement>("input#latency");
