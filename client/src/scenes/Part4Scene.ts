@@ -410,9 +410,11 @@ export class Part4Scene extends Phaser.Scene {
     }
 
     startCircleTimer() {
-        // Create a timer that triggers every 3 seconds
+        // Generate the first circle immediately
+        this.generateCircle();
+        // Then start the timer for subsequent circles
         this.circleTimer = this.time.addEvent({
-            delay: 3000,
+            delay: 10000, // 10 seconds
             callback: this.generateCircle,
             callbackScope: this,
             loop: true
