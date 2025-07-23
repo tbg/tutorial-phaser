@@ -2,7 +2,7 @@ import Phaser from "phaser";
 
 import { Part4Scene } from "./scenes/Part4Scene";
 
-import { BACKEND_HTTP_URL } from "./backend";
+import { BACKEND_HTTP_URL, BACKEND_URL } from "./backend";
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
@@ -24,6 +24,11 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 const game = new Phaser.Game(config);
+
+/**
+ * Display BACKEND_URL
+ */
+document.querySelector<HTMLSpanElement>("#backend-url").innerText = BACKEND_URL;
 
 /**
  * Create FPS selector
