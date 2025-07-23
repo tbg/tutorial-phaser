@@ -46,6 +46,10 @@ export class Part4Scene extends Phaser.Scene {
         super({ key: "part4" });
     }
 
+    preload() {
+        this.load.image('ship_0001', 'assets/ship_0001.png');
+    }
+
     async create() {
         this.cursorKeys = this.input.keyboard.createCursorKeys();
         this.debugFPS = this.add.text(4, 4, "", { color: "#ff0000", });
