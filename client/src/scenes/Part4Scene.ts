@@ -73,6 +73,54 @@ export class Part4Scene extends Phaser.Scene {
     preload() {
         this.load.image('ship_0001', 'assets/ship_0001.png');
         this.load.image('box', 'assets/box.png');
+        
+        // Create a simple cockroach sprite programmatically
+        this.createCockroachSprite();
+    }
+
+    createCockroachSprite() {
+        // Create a simple cockroach-like sprite using graphics
+        const graphics = this.add.graphics();
+        
+        // Body (brown oval)
+        graphics.fillStyle(0x8B4513); // Brown color
+        graphics.fillEllipse(16, 16, 20, 12);
+        
+        // Head (darker brown circle)
+        graphics.fillStyle(0x654321);
+        graphics.fillCircle(16, 8, 6);
+        
+        // Antennae (black lines)
+        graphics.lineStyle(1, 0x000000);
+        graphics.beginPath();
+        graphics.moveTo(14, 6);
+        graphics.lineTo(12, 2);
+        graphics.moveTo(18, 6);
+        graphics.lineTo(20, 2);
+        graphics.strokePath();
+        
+        // Legs (small black lines)
+        graphics.lineStyle(1, 0x000000);
+        graphics.beginPath();
+        // Left legs
+        graphics.moveTo(8, 14);
+        graphics.lineTo(4, 18);
+        graphics.moveTo(8, 18);
+        graphics.lineTo(4, 22);
+        graphics.moveTo(8, 22);
+        graphics.lineTo(4, 26);
+        // Right legs
+        graphics.moveTo(24, 14);
+        graphics.lineTo(28, 18);
+        graphics.moveTo(24, 18);
+        graphics.lineTo(28, 22);
+        graphics.moveTo(24, 22);
+        graphics.lineTo(28, 26);
+        graphics.strokePath();
+        
+        // Convert graphics to texture
+        graphics.generateTexture('cockroach', 32, 32);
+        graphics.destroy();
     }
 
     async create() {
@@ -93,7 +141,7 @@ export class Part4Scene extends Phaser.Scene {
         });
         
         // Add instructions
-        this.add.text(16, 80, 'Instructions: Catch red circles before they reach boxes (P)! Sort to correct alphabet box, then return green circles to goal box for points!', {
+        this.add.text(16, 80, 'Instructions: Control the cockroach! Catch red circles before they reach boxes (P)! Sort to correct alphabet box (circle turns green while you hold it), then carry to goal box for points!', {
             fontSize: '14px',
             color: '#333333',
             fontFamily: 'Arial, sans-serif',
@@ -174,7 +222,7 @@ export class Part4Scene extends Phaser.Scene {
         const $ = getStateCallbacks(this.room);
 
         $(this.room.state).players.onAdd((player, sessionId) => {
-            const entity = this.physics.add.image(player.x, player.y, 'ship_0001');
+            const entity = this.physics.add.image(player.x, player.y, 'cockroach');
             this.playerEntities[sessionId] = entity;
 
             // is current player
@@ -452,29 +500,14 @@ export class Part4Scene extends Phaser.Scene {
         
         if (targetBox.getData('type') === 'right') {
             if (targetBoxIndex === correctBoxIndex) {
-                // Store current position before clearing carried circle
-                const currentX = circle.x;
-                const currentY = circle.y;
-                
-                // Clear carried state FIRST
-                this.carriedCircle = null;
-                circle.setData('isCarried', false);
+                // Correct box! Keep the circle carried but turn it green
                 circle.setData('state', 'correct_box');
-                
-                // Change color to green and keep in exact same position
                 circle.setFillStyle(0x00ff00);
                 circle.setAlpha(1);
                 
-                // Ensure position stays exactly where it was
-                circle.x = currentX;
-                circle.y = currentY;
-                
-                // Update letter text position to match
-                const letterText = circle.getData('letterText');
-                if (letterText) {
-                    letterText.x = currentX;
-                    letterText.y = currentY;
-                }
+                // Keep the circle being carried (don't clear carriedCircle)
+                // The circle stays with the player and continues following them
+                // The circle remains in 'isCarried' state
             } else {
                 // Wrong box, return to player
                 this.returnCircleToPlayer();
