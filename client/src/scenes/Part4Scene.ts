@@ -62,6 +62,7 @@ export class Part4Scene extends Phaser.Scene {
         this.boxes = this.physics.add.group();
 
         const canvasWidth = Number(this.sys.game.config.width);
+        const canvasHeight = Number(this.sys.game.config.height);
         const boxWidth = 200;
         const boxHeight = 100;
         const padding = 20;
@@ -73,6 +74,21 @@ export class Part4Scene extends Phaser.Scene {
             box.displayWidth = boxWidth;
             box.displayHeight = boxHeight;
         }
+
+        const newBoxHeight = canvasHeight * 0.4;
+        const verticalSpacing = (canvasHeight - (2 * newBoxHeight)) / 3;
+
+        const box1 = this.boxes.create(boxWidth / 2, verticalSpacing + newBoxHeight / 2, 'box');
+        box1.setData('id', 6);
+        box1.body.immovable = true;
+        box1.displayWidth = boxWidth;
+        box1.displayHeight = newBoxHeight;
+
+        const box2 = this.boxes.create(boxWidth / 2, (verticalSpacing * 2) + newBoxHeight + (newBoxHeight / 2), 'box');
+        box2.setData('id', 7);
+        box2.body.immovable = true;
+        box2.displayWidth = boxWidth;
+        box2.displayHeight = newBoxHeight;
 
         // connect with the room
         await this.connect();
