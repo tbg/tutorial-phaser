@@ -1,0 +1,5 @@
+After finishing work that results in changes to the codebase, I should always ask the user if they want me to commit the changes. I should also propose a short and descriptive commit message.
+description:
+globs:
+alwaysApply: false
+---
