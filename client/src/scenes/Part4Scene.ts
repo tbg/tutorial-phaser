@@ -65,6 +65,8 @@ export class Part4Scene extends Phaser.Scene {
     fixedTimeStep = 1000 / 60;
 
     currentTick: number = 0;
+    circleSpawnDelay: number = 10000; // Start at 10 seconds
+    circlesSpawned: number = 0;
 
     constructor() {
         super({ key: "part4" });
@@ -414,8 +416,24 @@ export class Part4Scene extends Phaser.Scene {
         this.generateCircle();
         // Then start the timer for subsequent circles
         this.circleTimer = this.time.addEvent({
-            delay: 10000, // 10 seconds
-            callback: this.generateCircle,
+            delay: this.circleSpawnDelay,
+            callback: this.handleDynamicCircleTimer,
+            callbackScope: this,
+            loop: true
+        });
+    }
+
+    handleDynamicCircleTimer() {
+        this.generateCircle();
+        this.circlesSpawned++;
+        // Every 3 circles, reduce the delay (10s → 8s → 6s ...), min 3s
+        if (this.circlesSpawned % 3 === 0 && this.circleSpawnDelay > 3000) {
+            this.circleSpawnDelay = Math.max(3000, this.circleSpawnDelay - 2000);
+        }
+        // Update the timer's delay for the next spawn
+        this.circleTimer.reset({
+            delay: this.circleSpawnDelay,
+            callback: this.handleDynamicCircleTimer,
             callbackScope: this,
             loop: true
         });
