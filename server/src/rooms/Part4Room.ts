@@ -82,7 +82,7 @@ export class Part4Room extends Room<MyRoomState> {
 
     const player = new Player();
     player.x = 1000;
-    player.y = 420;
+    player.y = 400;
 
     this.state.players.set(client.sessionId, player);
   }

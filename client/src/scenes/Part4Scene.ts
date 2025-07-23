@@ -63,14 +63,15 @@ export class Part4Scene extends Phaser.Scene {
 
         const canvasWidth = Number(this.sys.game.config.width);
         const boxWidth = 200;
+        const boxHeight = 100;
         const padding = 20;
 
-        for (let i = 0; i < 3; i++) {
-            const box = this.boxes.create(canvasWidth - boxWidth / 2, 200 + (i * (boxWidth + padding)), 'box');
+        for (let i = 0; i < 6; i++) {
+            const box = this.boxes.create(canvasWidth - boxWidth / 2, 100 + (i * (boxHeight + padding)), 'box');
             box.setData('id', i);
             box.body.immovable = true;
             box.displayWidth = boxWidth;
-            box.displayHeight = 200;
+            box.displayHeight = boxHeight;
         }
 
         // connect with the room
