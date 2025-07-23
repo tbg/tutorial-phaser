@@ -169,8 +169,15 @@ export class Part4Scene extends Phaser.Scene {
         if (!this.currentPlayer) { return; }
 
         this.physics.world.overlap(this.currentPlayer, this.boxes, (player, box) => {
+            const boxId = (box as Phaser.Physics.Arcade.Image).getData('id');
             if (this.actionKey.isDown) {
-                alert(`Player interacted with box #${(box as Phaser.Physics.Arcade.Image).getData('id')}`);
+                let message;
+                if (boxId > 5) {
+                    message = `Player interacted with new box #${boxId}`;
+                } else {
+                    message = `Player interacted with box #${boxId}`;
+                }
+                alert(message);
             }
         });
 
