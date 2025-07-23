@@ -13,6 +13,7 @@ export class Player extends Schema {
   @type("number") x: number;
   @type("number") y: number;
   @type("number") tick: number;
+  @type("number") score: number = 0; // Add score property
   inputQueue: InputData[] = [];
 }
 
@@ -83,6 +84,7 @@ export class Part4Room extends Room<MyRoomState> {
     const player = new Player();
     player.x = 1000;
     player.y = 400;
+    player.score = 0; // Initialize score
 
     this.state.players.set(client.sessionId, player);
   }

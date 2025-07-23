@@ -21,6 +21,8 @@ export class Part4Scene extends Phaser.Scene {
 
     currentPlayer: Phaser.Types.Physics.Arcade.ImageWithDynamicBody;
     playerEntities: { [sessionId: string]: Phaser.Types.Physics.Arcade.ImageWithDynamicBody } = {};
+    playerScores: { [sessionId: string]: number } = {};
+    playerScoreTexts: { [sessionId: string]: Phaser.GameObjects.Text } = {};
 
     debugFPS: Phaser.GameObjects.Text;
 
@@ -37,8 +39,6 @@ export class Part4Scene extends Phaser.Scene {
     
     // Game mechanics
     circleTimer: Phaser.Time.TimerEvent;
-    score: number = 0;
-    scoreText: Phaser.GameObjects.Text;
     carriedCircle: Phaser.GameObjects.Arc = null;
     goalBox: Phaser.GameObjects.Rectangle = null;
     goalBoxText: Phaser.GameObjects.Text = null;
@@ -134,14 +134,6 @@ export class Part4Scene extends Phaser.Scene {
         this.boxes = this.physics.add.group();
         this.circles = this.physics.add.group();
         
-        // Create score display
-        this.scoreText = this.add.text(16, 50, 'Score: 0', {
-            fontSize: '24px',
-            color: '#000000',
-            fontFamily: 'Arial, sans-serif',
-            fontStyle: 'bold'
-        });
-        
         // Add instructions
         this.add.text(16, 80, 'Instructions: Control the cockroach! Catch red circles before they reach boxes (P)! Sort to correct alphabet box (circle turns green while you hold it), then carry to goal box for points!', {
             fontSize: '14px',
@@ -226,6 +218,18 @@ export class Part4Scene extends Phaser.Scene {
         $(this.room.state).players.onAdd((player, sessionId) => {
             const entity = this.physics.add.image(player.x, player.y, 'cockroach');
             this.playerEntities[sessionId] = entity;
+            this.playerScores[sessionId] = player.score || 0;
+            // Create score text next to cockroach
+            const scoreText = this.add.text(entity.x + 30, entity.y - 20, `Score: 0`, {
+                fontSize: '16px',
+                color: '#000000',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                stroke: '#ffffff',
+                strokeThickness: 2
+            });
+            scoreText.setOrigin(0, 0.5);
+            this.playerScoreTexts[sessionId] = scoreText;
 
             // is current player
             if (sessionId === this.room.sessionId) {
@@ -262,6 +266,12 @@ export class Part4Scene extends Phaser.Scene {
             if (entity) {
                 entity.destroy();
                 delete this.playerEntities[sessionId]
+                // Remove score text
+                if (this.playerScoreTexts[sessionId]) {
+                    this.playerScoreTexts[sessionId].destroy();
+                    delete this.playerScoreTexts[sessionId];
+                }
+                delete this.playerScores[sessionId];
             }
         });
 
@@ -361,6 +371,15 @@ export class Part4Scene extends Phaser.Scene {
         }
 
         this.debugFPS.text = `Frame rate: ${this.game.loop.actualFps}`;
+        // Update score text positions for all players
+        for (const sessionId in this.playerEntities) {
+            const entity = this.playerEntities[sessionId];
+            const scoreText = this.playerScoreTexts[sessionId];
+            if (entity && scoreText) {
+                scoreText.x = entity.x + 30;
+                scoreText.y = entity.y - 20;
+            }
+        }
     }
 
     fixedTick(time, delta) {
@@ -612,7 +631,6 @@ export class Part4Scene extends Phaser.Scene {
     restartGame() {
         // Clean up everything before restarting
         this.gameOver = false;
-        this.score = 0;
         this.carriedCircle = null;
         
         // Remove all circles and their text
@@ -678,9 +696,12 @@ export class Part4Scene extends Phaser.Scene {
         const circle = this.carriedCircle;
         const letterText = circle.getData('letterText');
         
-        // Award point and clean up
-        this.score += 1;
-        this.scoreText.setText(`Score: ${this.score}`);
+        // Award point to current player only
+        const sessionId = this.room.sessionId;
+        this.playerScores[sessionId] = (this.playerScores[sessionId] || 0) + 1;
+        if (this.playerScoreTexts[sessionId]) {
+            this.playerScoreTexts[sessionId].setText(`Score: ${this.playerScores[sessionId]}`);
+        }
         
         // Remove circle and text
         letterText.destroy();
