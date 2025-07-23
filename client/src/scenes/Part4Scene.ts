@@ -278,7 +278,15 @@ export class Part4Scene extends Phaser.Scene {
         const client = new Client(BACKEND_URL);
 
         try {
-            this.room = await client.joinOrCreate("part4_room", {});
+            //
+            // It's important to send `headers` on matchmaking request,
+            // so we can identify the client on the server-side.
+            //
+            this.room = await client.joinOrCreate("part4_room", {
+                headers: {
+                    'ngrok-skip-browser-warning': 'true',
+                }
+            });
 
             // connection successful!
             connectionStatusText.destroy();

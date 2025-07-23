@@ -73,7 +73,9 @@ if (latencyInput) {
 
     latencyInput.onchange = function (event: InputEvent) {
         // request server to update its latency simulation
-        fetch(`${BACKEND_HTTP_URL}/simulate-latency/${latencyInput.value}`);
+        fetch(`${BACKEND_HTTP_URL}/simulate-latency/${latencyInput.value}`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' },
+        });
 
         setIntervalFetchLatencySimulation();
     };
@@ -83,7 +85,9 @@ if (latencyInput) {
         // Keep fetching latency simulation number from server to keep all browser tabs in sync
         //
         fetchLatencySimulationInterval = setInterval(() => {
-            fetch(`${BACKEND_HTTP_URL}/latency`)
+            fetch(`${BACKEND_HTTP_URL}/latency`, {
+                headers: { 'ngrok-skip-browser-warning': 'true' },
+            })
                 .then((response) => response.json())
                 .then((value) => {
                     latencyInput.value = value;
