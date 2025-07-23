@@ -30,7 +30,7 @@ export class Part4Scene extends Phaser.Scene {
     cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys;
     actionKey: Phaser.Input.Keyboard.Key;
 
-    box: Phaser.Types.Physics.Arcade.ImageWithDynamicBody;
+    boxes: Phaser.Physics.Arcade.Group;
 
     inputPayload = {
         left: false,
@@ -59,10 +59,19 @@ export class Part4Scene extends Phaser.Scene {
         this.actionKey = this.input.keyboard.addKey('P');
         this.debugFPS = this.add.text(4, 4, "", { color: "#ff0000", });
 
-        this.box = this.physics.add.image(1200, 400, 'box').setImmovable(true);
-        this.box.displayWidth = 200;
-        this.box.displayHeight = 200;
+        this.boxes = this.physics.add.group();
 
+        const canvasWidth = Number(this.sys.game.config.width);
+        const boxWidth = 200;
+        const padding = 20;
+
+        for (let i = 0; i < 3; i++) {
+            const box = this.boxes.create(canvasWidth - boxWidth / 2, 200 + (i * (boxWidth + padding)), 'box');
+            box.setData('id', i);
+            box.body.immovable = true;
+            box.displayWidth = boxWidth;
+            box.displayHeight = 200;
+        }
 
         // connect with the room
         await this.connect();
@@ -142,9 +151,9 @@ export class Part4Scene extends Phaser.Scene {
         // skip loop if not connected yet.
         if (!this.currentPlayer) { return; }
 
-        this.physics.world.overlap(this.currentPlayer, this.box, (player, box) => {
+        this.physics.world.overlap(this.currentPlayer, this.boxes, (player, box) => {
             if (this.actionKey.isDown) {
-                alert("Player interacted with the box!");
+                alert(`Player interacted with box #${(box as Phaser.Physics.Arcade.Image).getData('id')}`);
             }
         });
 

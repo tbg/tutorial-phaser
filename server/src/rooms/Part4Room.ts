@@ -81,8 +81,8 @@ export class Part4Room extends Room<MyRoomState> {
     console.log(client.sessionId, "joined!");
 
     const player = new Player();
-    player.x = Math.random() * this.state.mapWidth;
-    player.y = Math.random() * this.state.mapHeight;
+    player.x = 1000;
+    player.y = 420;
 
     this.state.players.set(client.sessionId, player);
   }
