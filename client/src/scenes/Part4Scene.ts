@@ -67,12 +67,37 @@ export class Part4Scene extends Phaser.Scene {
         const boxHeight = 100;
         const padding = 20;
 
+        // Define alphabet ranges for each box
+        const alphabetRanges = ['A-E', 'F-I', 'J-M', 'N-Q', 'R-U', 'V-Z'];
+
         for (let i = 0; i < 6; i++) {
-            const box = this.boxes.create(canvasWidth - boxWidth / 2, 100 + (i * (boxHeight + padding)), 'box');
+            const boxX = canvasWidth - boxWidth / 2;
+            const boxY = 100 + (i * (boxHeight + padding));
+            
+            const box = this.boxes.create(boxX, boxY, 'box');
             box.setData('id', i);
             box.body.immovable = true;
             box.displayWidth = boxWidth;
             box.displayHeight = boxHeight;
+            
+            // Add alphabet range text to each box
+            const rangeText = this.add.text(boxX, boxY, alphabetRanges[i], {
+                fontSize: '24px',
+                color: '#ffffff',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
+            });
+            rangeText.setOrigin(0.5, 0.5); // Center the text
+            
+            // Add a subtle background for better readability
+            const textBg = this.add.rectangle(boxX, boxY, rangeText.width + 20, rangeText.height + 10, 0x000000, 0.6);
+            textBg.setOrigin(0.5, 0.5);
+            
+            // Ensure text appears above background
+            textBg.setDepth(1);
+            rangeText.setDepth(2);
         }
 
         const newBoxHeight = canvasHeight * 0.4;
