@@ -508,6 +508,9 @@ export class Part4Scene extends Phaser.Scene {
         
         if (targetBox.getData('type') === 'right') {
             if (targetBoxIndex === correctBoxIndex) {
+                // Stop the original tween to prevent game over
+                this.tweens.killTweensOf([circle, circle.getData('letterText')]);
+                
                 // Correct box! Keep the circle carried but turn it green
                 circle.setData('state', 'correct_box');
                 circle.setFillStyle(0x00ff00);
