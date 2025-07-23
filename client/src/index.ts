@@ -16,7 +16,7 @@ const config: Phaser.Types.Core.GameConfig = {
         smoothStep: false,
     },
     width: 1440,
-    height: 900,
+    height: 800,
     // height: 200,
     backgroundColor: '#b6d53c',
     parent: 'phaser-example',

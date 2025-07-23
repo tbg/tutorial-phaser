@@ -99,7 +99,7 @@ export class Part4Scene extends Phaser.Scene {
 
         // this.cameras.main.startFollow(this.ship, true, 0.2, 0.2);
         // this.cameras.main.setZoom(1);
-        this.cameras.main.setBounds(0, 0, 800, 600);
+        this.cameras.main.setBounds(0, 0, 1440, 800);
     }
 
     async connect() {
