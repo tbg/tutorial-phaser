@@ -629,15 +629,22 @@ export class Part4Scene extends Phaser.Scene {
 
     createGoalBox() {
         if (this.goalBox || this.gameOver) return;
-        
-        // Create goal box in center of screen
-        const centerX = Number(this.sys.game.config.width) / 2;
-        const centerY = Number(this.sys.game.config.height) / 2;
-        
-        this.goalBox = this.add.rectangle(centerX, centerY, 120, 80, 0xffff00, 0.8);
+        // Get game bounds
+        const width = Number(this.sys.game.config.width);
+        const height = Number(this.sys.game.config.height);
+        // Random position, but keep the box fully on screen
+        const boxWidth = 120;
+        const boxHeight = 80;
+        const margin = 20;
+        const minX = margin + boxWidth / 2;
+        const maxX = width - margin - boxWidth / 2;
+        const minY = margin + boxHeight / 2;
+        const maxY = height - margin - boxHeight / 2;
+        const randomX = Phaser.Math.Between(minX, maxX);
+        const randomY = Phaser.Math.Between(minY, maxY);
+        this.goalBox = this.add.rectangle(randomX, randomY, boxWidth, boxHeight, 0xffff00, 0.8);
         this.goalBox.setStrokeStyle(3, 0xff8800);
-        
-        this.goalBoxText = this.add.text(centerX, centerY, 'GOAL\nBOX', {
+        this.goalBoxText = this.add.text(randomX, randomY, 'GOAL\nBOX', {
             fontSize: '16px',
             color: '#000000',
             fontFamily: 'Arial, sans-serif',
